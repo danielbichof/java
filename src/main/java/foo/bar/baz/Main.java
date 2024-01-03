@@ -1,4 +1,4 @@
-package foo.bar.baz;
+package src.main.java.foo.bar.baz;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

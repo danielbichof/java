@@ -1,4 +1,4 @@
-package foo.bar.baz;
+package src.main.java.foo.bar.baz;
 
 class Calc{
 
