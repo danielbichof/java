@@ -6,11 +6,10 @@ import org.junit.jupiter.api.Test;
 import foo.bar.baz.Calc;
 
 class CalcJUnitTests {
-    private final Calc calculator = new Calc();
+    // private final Calc calculator = new Calc();
 
     @Test
-    void addition()
-    {
-        assertEquals(2, calculator.sum(1,1));
+    void addition() {
+        assertEquals(2, Calc.sum(1, 1));
     }
 }

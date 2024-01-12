@@ -40,6 +40,11 @@ public class Main {
         }catch (Exception e){
             e.printStackTrace();
         }
+
+        LibCpp clib = new LibCpp();
+        clib.writeStr("Hello c++");
+        logger.info(clib.readStr());
+
     }
 
 }
