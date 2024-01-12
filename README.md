@@ -1,6 +1,6 @@
 # Exercício 09
 
-Criando uma lib c++ simples e usando no nosso programa java.
+Criando uma lib c++ simples e usando no nosso programa java com JNI.
 
 Primeiro vamos criar uma estrutura para criar a lib
 
@@ -152,6 +152,16 @@ Estamos adicionando a nossa biblioteca, a partir do caminho *${project.basedir}/
 mkdir -p src/main/resources/lib/
 cp 3rdparty/libstr/bin/libstrcpp.so src/main/resources/lib/
 ```
+
+Agora podemos usar nossa biblioteca na classe Main:
+
+```java
+LibCpp clib = new LibCpp();
+clib.writeStr("Hello c++");
+logger.info(clib.readStr());
+```
+
+A classe LibCpp carrega a biblioteca `System.loadLibrary("strcpp");`, como o java se encarrega de adicionar "lib" e ".so", então não precisamos passar o caminho completo da biblioteca. Assim usamos as funções em C como funções Java na nossa classe.
 
 Agora podemos compilar e rodar nosso programa:
 
