@@ -1,11 +1,10 @@
 package foo.bar.baz;
 
-public class LibCpp{
-    static {
-        System.loadLibrary("strcpp");
-    }
+import com.sun.jna.Library;
 
-    public native String readStr();
-    public native void writeStr(String str);
-    public native boolean cmpInternalStr(String str1, String str2);
+public interface LibCpp extends Library {
+
+    public String readStr();
+    public void writeStr(String str);
+    public boolean cmpInternalStr(String str1, String str2);
 }

@@ -1,6 +1,8 @@
 #!/bin/bash
 
-g++ -shared -fPIC -o bin/libstrcpp.so ./src/libstrcpp.cpp \
-    -I/usr/lib/jvm/java-1.8.0-openjdk-amd64/include/ \
-    -I /usr/lib/jvm/java-1.8.0-openjdk-amd64/include/linux \
-    -I./src/
+rm -rf bin
+mkdir bin -p
+
+g++ -shared \
+    ./src/libstrcpp.cpp \
+    -o bin/libstrcpp.so

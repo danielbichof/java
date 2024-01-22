@@ -9,6 +9,8 @@ import org.apache.logging.log4j.status.StatusLogger;
 import foo.bar.baz.proto.PersonOuterClass;
 import foo.bar.baz.proto.PersonOuterClass.Person;
 
+import com.sun.jna.Native;
+
 public class Main {
 
     static {
@@ -41,8 +43,8 @@ public class Main {
             e.printStackTrace();
         }
 
-        LibCpp clib = new LibCpp();
-        clib.writeStr("Hello c++");
+        LibCpp clib = (LibCpp) Native.loadLibrary("strcpp", LibCpp.class);
+        clib.writeStr("Hello c++ with JNA");
         logger.info(clib.readStr());
 
     }

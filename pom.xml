@@ -35,8 +35,18 @@
             <artifactId>junit-jupiter-engine</artifactId>
             <version>5.9.1</version>
             <scope>test</scope>
-    </dependency>
-    </dependencies>
+        </dependency>
+        <dependency> <!-- JNA dependency -->
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+        <dependency>
+	          <groupId>net.java.dev.jna</groupId>
+	          <artifactId>jna-platform</artifactId>
+        	  <version>5.14.0</version>
+        </dependency>
+        </dependencies>
 
     <build>
         <!--<sourceDirectory>src</sourceDirectory>-->
@@ -76,20 +86,7 @@
                 </executions>
 
             </plugin>
-            <!-- <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>foo.bar.baz.LibCpp</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin> -->
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -102,10 +99,14 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <outputDirectory>
+                                    ${project.build.directory}/lib
+                            </outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${project.basedir}/src/main/resources/lib</directory>
+                                    <directory>
+                                            ${project.basedir}/src/main/resources/lib
+                                    </directory>
                                     <includes>
                                         <include>libstrcpp.so</include>
                                     </includes>

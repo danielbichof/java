@@ -1,182 +1,87 @@
-# Exercício 09
 
-Criando uma lib c++ simples e usando no nosso programa java com JNI.
+# Exercício 10
 
-Primeiro vamos criar uma estrutura para criar a lib
+Usando a mesma biblioteca C++ e fazer aplicação em Java integrando tal biblioteca via JNA.
 
-```sh
-mkdir -p 3rdparty/libstr/src 3rdparty/libstr/bin
+##
+
+Seguindo a documentação do [JNA no github](https://github.com/java-native-access/jna?tab=readme-ov-file)
+encontramos o a referencia para adiciona-lo ao maven
+
+```xml
+<dependency>
+    <groupId>net.java.dev.jna</groupId>
+    <artifactId>jna-platform</artifactId>
+    <version>5.14.0</version>
+</dependency>
 ```
 
-Agora vamos criar uma classe que usa a lib C++.
+Com JNA podemos deixar nosso código mais limpo nos privar da complexidade das chamadas do JNI.
+Vejamos como nossa biblioteca c++ fica com essa mudança. Podemos descartar o uso de um header, e também do header do JNI,
+Assim nos concentramos apenas na implementação que contem valor para nossa aplicação.
 
-```java
-package foo.bar.baz;
-
-public class LibCpp{
-    static {
-        System.loadLibrary("strcpp");
-    }
-
-    public native String readStr();
-    public native void writeStr(String str);
-    public native boolean cmpInternalStr(String str1, String str2);
-}
-```
-
-Aqui carregamos uma lib chamada `strcpp`,  e declara as funções que vamos usar. Para isso vamos gerar um arquivo header "*.h*" do JNI para podermos usar na nossa lib.
-
-```sh
-javac -h 3rdparty/libstr/src/ src/main/java/foo/bar/baz/LibCpp.java
-```
-
-Assim podemos usar esse header como uma interface para o C++. Para implementar as funções que queremos usar na classe LibCpp vamos criar um arquivo `libstrcpp.h` para exportar as funções que queremos implementar.
 
 ```cpp
-#ifndef LIBSTR_H
-#define LIBSTR_H
+#include <stdio.h>
+#include <cstring>
+#include <iostream>
 
-#include <jni.h>
+static std::string storedString;
 
 #ifdef __cplusplus
 extern "C"{
 #endif
+    const char* readStr(){
+        return storedString.c_str();
+    }
 
-JNIEXPORT void JNICALL Java_foo_bar_baz_LibCpp_writeStr(JNIEnv *env, jobject obj, jstring str);
-JNIEXPORT jstring JNICALL Java_foo_bar_baz_LibCpp_readStr(JNIEnv *env, jobject obj);
-JNIEXPORT jboolean JNICALL Java_foo_bar_baz_LibCpp_cmpInternalStr(JNIEnv *env, jobject obj, jstring str1, jstring str2);
+    void writeStr(const char* str){
+        storedString = str;
+    }
+
+    bool cmpInternalStr(char* str1){
+        return (strcmp(str1, storedString.c_str()));
+    }
 
 #ifdef __cplusplus
 }
+
 #endif //cplusplus
-#endif //LIBSTR_H
-
 ```
 
-- *JNIEXPORT* Diz ao compilador para exportar a função
-- *JNICALL* Converte a chamada da funções
+O código executa as mesmas coisas que antes, porem vemos que sem as chamadas do JNI.
+Ele ainda contem a chamada de **extern "C"**, como já vimos o java carrega apenas código em C puro.
 
-Vamos implementar as funções em um documento *libstrcpp.cpp*, dentro de *3rdparty/libstr/src*
-
-```cpp
-#include <iostream>
-#include "foo_bar_baz_LibCpp.h"
-#include <cstring>
-
-static std::string storedString;
-
-JNIEXPORT jstring JNICALL Java_foo_bar_baz_LibCpp_readStr
-(JNIEnv *env, jobject) {
-    return env->NewStringUTF(storedString.c_str());
-}
-
-JNIEXPORT void JNICALL Java_foo_bar_baz_LibCpp_writeStr
-(JNIEnv *env, jobject obj, jstring javaStr) {
-    const char* nativeStr = env->GetStringUTFChars(javaStr, 0);
-    storedString = nativeStr;
-    env->ReleaseStringUTFChars(javaStr, nativeStr);
-}
-
-
-JNIEXPORT jboolean JNICALL Java_foo_bar_baz_LibCpp_cmpInternalStr
-(JNIEnv *env, jobject obj, jstring jstr1, jstring jstr2) {
-    const char* nativeStr1 = env->GetStringUTFChars(jstr1, nullptr);
-    const char* nativeStr2 = env->GetStringUTFChars(jstr2, nullptr);
-    bool res = (strcmp(nativeStr1, nativeStr2) == 0);
-
-    env->ReleaseStringUTFChars(jstr1, nativeStr1);
-    env->ReleaseStringUTFChars(jstr2, nativeStr2);
-    return static_cast<jboolean>(res);
-}
-```
-
-Agora podemos compilar e gerar uma lib. No sistema linux usamos um tipo de arquivo com a extensão *.so*, para bibliotecas dinâmicas compartilhadas.
-
-```sh
-g++ -shared -fPIC -o bin/libstrcpp.so ./src/libstrcpp.cpp \
-    -I/usr/lib/jvm/java-1.8.0-openjdk-amd64/include/ \
-    -I /usr/lib/jvm/java-1.8.0-openjdk-amd64/include/linux \
-    -I./src/
-```
-
-- *-shared -fPIC* Esses dois argumentos dizem ao compilador que vamos gerar uma biblioteca compartilhada (dinâmica) e "Position Independent Code", necessário para libs compartilhadas.
-
-Agora podemos configurar nosso pom.xml para que o maven encontre a nossa lib. Dentro da tag *plugins* vamos adicionar os plugins necessários:
-
-```xml
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>copy-resources</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>
-                                ${project.build.directory}/lib
-                            </outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>
-                                        ${project.basedir}/src/main/resources/lib
-                                    </directory>
-                                    <includes>
-                                        <include>libstrcpp.so</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
-                <configuration>
-                    <environmentVariables>
-                    <LD_LIBRARY_PATH>${project.build.directory}/lib</LD_LIBRARY_PATH>
-                    </environmentVariables>
-                </configuration>
-        </plugin>
-```
-
-Estamos adicionando a nossa biblioteca, a partir do caminho *${project.basedir}/src/main/resources/lib*, no nosso arquivo Jar. Para isso devemos adicionar nossa lib ao caminho correto:
-
-```sh
-mkdir -p src/main/resources/lib/
-cp 3rdparty/libstr/bin/libstrcpp.so src/main/resources/lib/
-```
-
-Agora podemos usar nossa biblioteca na classe Main:
+Nossa podemos implementar uma interface Java muito mais simples:
 
 ```java
-LibCpp clib = new LibCpp();
-clib.writeStr("Hello c++");
-logger.info(clib.readStr());
+package foo.bar.baz;
+
+import com.sun.jna.Library;
+
+public interface LibCpp extends Library {
+
+    public String readStr();
+    public void writeStr(String str);
+    public boolean cmpInternalStr(String str1, String str2);
+}
 ```
 
-A classe LibCpp carrega a biblioteca `System.loadLibrary("strcpp");`, como o java se encarrega de adicionar "lib" e ".so", então não precisamos passar o caminho completo da biblioteca. Assim usamos as funções em C como funções Java na nossa classe.
-
-Agora podemos compilar e rodar nosso programa:
+Aqui não carregamos nossa biblioteca, apenas declaramos as funções que vamos utilizar.
 
 ```sh
-mvn clean package
-java -Djava.library.path=target/lib -jar target/HelloWorld-1.0-SNAPSHOT-jar-with-dependencies.jar
+java -Djna.library.path=3rdparty/libstr/bin/ -jar target/HelloWorld-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
-- *-Djava.library.path=target/lib*: Devemos passar o caminho para a nossa lib, já que nossa classe não usa a biblioteca dinâmica diretamente do jar
+
+Note que ao invés de usarmos o **java.library.path** estamos usando **jna.library.path**, isso porque não estamos
+mais carregando a biblioteca com JNI nativo do java, e sim uma API que faz isso para nós.
 
 ```sh
 #output
-11:18:23.412 [main] INFO  foo.bar.baz.Main - Olá, mundo! Usando o Log4j!
-11:18:23.414 [main] WARN  foo.bar.baz.Main - Somando 2 numeros: 10
-11:18:23.436 [main] INFO  foo.bar.baz.Main - Id:1
-11:18:23.436 [main] INFO  foo.bar.baz.Main - Name:Daniel
-11:18:23.436 [main] INFO  foo.bar.baz.Main - Email:daniel@example.com
-11:18:23.436 [main] INFO  foo.bar.baz.Main - Hello c++
+09:30:27.973 [main] INFO  foo.bar.baz.Main - Olá, mundo! Usando o Log4j!
+09:30:27.975 [main] WARN  foo.bar.baz.Main - Somando 2 numeros: 10
+09:30:27.995 [main] INFO  foo.bar.baz.Main - Id:1
+09:30:27.995 [main] INFO  foo.bar.baz.Main - Name:Daniel
+09:30:27.995 [main] INFO  foo.bar.baz.Main - Email:daniel@example.com
+09:30:28.027 [main] INFO  foo.bar.baz.Main - Hello c++ with JNA
 ```
